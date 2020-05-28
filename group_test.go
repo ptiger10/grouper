@@ -38,10 +38,10 @@ func TestGrouper_GroupBy(t *testing.T) {
 					return v.(testStructPrivate).name
 				},
 			},
-			[]string{"bar", "foo"},
+			[]string{"foo", "bar"},
 			[][]int{
-				{1, 2},
 				{0, 3},
+				{1, 2},
 			},
 		},
 		{"pass - *[]",
@@ -58,10 +58,10 @@ func TestGrouper_GroupBy(t *testing.T) {
 					return v.(*testStructPrivate).name
 				},
 			},
-			[]string{"bar", "foo"},
+			[]string{"foo", "bar"},
 			[][]int{
-				{1, 2},
 				{0, 3},
+				{1, 2},
 			},
 		},
 	}
@@ -70,12 +70,12 @@ func TestGrouper_GroupBy(t *testing.T) {
 			g := Grouper{
 				sliceOfStructs: tt.fields.sliceOfStructs,
 			}
-			gotGroups, gotIndices := g.GroupBy(tt.args.lambda)
-			if !reflect.DeepEqual(gotGroups, tt.wantGroups) {
-				t.Errorf("Grouper.GroupBy() gotGroups = %v, want %v", gotGroups, tt.wantGroups)
-			}
+			gotIndices := g.GroupBy(tt.args.lambda)
 			if !reflect.DeepEqual(gotIndices, tt.wantIndices) {
 				t.Errorf("Grouper.GroupBy() gotIndices = %v, want %v", gotIndices, tt.wantIndices)
+			}
+			if !reflect.DeepEqual(g.Groups(), tt.wantGroups) {
+				t.Errorf("Grouper.GroupBy() gotGroups = %v, want %v", g.Groups(), tt.wantGroups)
 			}
 		})
 	}
@@ -146,7 +146,7 @@ func TestNew(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    Grouper
+		want    *Grouper
 		wantErr bool
 	}{
 		{"pass",
@@ -155,7 +155,7 @@ func TestNew(t *testing.T) {
 					{"foo", 1},
 				},
 			},
-			Grouper{
+			&Grouper{
 				typ: reflect.TypeOf(testStructPrivate{}),
 				sliceOfStructs: []testStructPrivate{
 					{"foo", 1},
@@ -165,17 +165,17 @@ func TestNew(t *testing.T) {
 		},
 		{"fail - not slice",
 			args{"foo"},
-			Grouper{},
+			nil,
 			true,
 		},
 		{"fail - not slice of struct",
 			args{[]string{"foo"}},
-			Grouper{},
+			nil,
 			true,
 		},
 		{"fail - not slice of *struct",
 			args{[]*string{&foo}},
-			Grouper{},
+			nil,
 			true,
 		},
 	}

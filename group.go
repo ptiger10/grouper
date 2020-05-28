@@ -6,69 +6,74 @@ package grouper
 import (
 	"fmt"
 	"reflect"
-	"sort"
 
 	"github.com/pkg/errors"
 )
 
-// A Grouper can
+// A Grouper holds a slice of structs.
 type Grouper struct {
 	sliceOfStructs interface{}
 	typ            reflect.Type
+	groups         []string
 }
 
-// New constructs a new Grouper from a slice of structs (or pointers to structs).
-func New(sliceOfStructs interface{}) (Grouper, error) {
+// Groups returns the group names saved during the most recent GroupBy call,
+// in the order in which each group was observed.
+func (g *Grouper) Groups() []string {
+	return g.groups
+}
+
+// New constructs a new Grouper from a slice of structs (or a slice of pointers to structs).
+func New(sliceOfStructs interface{}) (*Grouper, error) {
 	err := fmt.Sprintf("unsupported input type (%v), must be []*struct or []struct",
 		reflect.TypeOf(sliceOfStructs))
 	if reflect.TypeOf(sliceOfStructs).Kind() != reflect.Slice {
-		return Grouper{}, errors.New(err)
+		return nil, errors.New(err)
 	}
 	typ := reflect.TypeOf(sliceOfStructs).Elem()
 	switch typ.Kind() {
 	case reflect.Ptr:
 		if typ.Elem().Kind() != reflect.Struct {
-			return Grouper{}, errors.New(err)
+			return nil, errors.New(err)
 		}
 
 	case reflect.Struct:
 	default:
-		return Grouper{}, errors.New(err)
+		return nil, errors.New(err)
 	}
-	return Grouper{
+	return &Grouper{
 		sliceOfStructs: sliceOfStructs,
 		typ:            typ,
 	}, nil
 }
 
-// GroupBy assigns each struct to a group based on the grouper function.
-func (g Grouper) GroupBy(grouper func(strct interface{}) string) (groupNames []string, indices [][]int) {
+// GroupBy assigns each struct to a group based on the grouper function. Returns the index positions of each group.
+// Group names can be accessed afterwards by calling g.Group().
+func (g *Grouper) GroupBy(grouper func(strct interface{}) string) [][]int {
 	v := reflect.ValueOf(g.sliceOfStructs)
 	m := make(map[string][]int, 7)
+	groupNames := make([]string, 0, 7)
 	for i := 0; i < v.Len(); i++ {
 		group := grouper(v.Index(i).Interface())
 		if _, ok := m[group]; !ok {
 			m[group] = []int{i}
+			groupNames = append(groupNames, group)
 		} else {
 			m[group] = append(m[group], i)
 		}
 	}
-	groupNames = make([]string, 0, len(m))
-	for k := range m {
-		groupNames = append(groupNames, k)
-	}
-	sort.Strings(groupNames)
+	g.groups = groupNames
 
-	indices = make([][]int, len(m))
+	indices := make([][]int, len(m))
 	for i := range groupNames {
 		indices[i] = m[groupNames[i]]
 	}
-	return groupNames, indices
+	return indices
 }
 
-// Reduce reduces one or more groups (slices of structs) to one value per group.
+// Reduce reduces one or more groups (i.e., slice(s) of structs derived from a larger slice of structs) to one value per group.
 // The result is returned in the form: map{groupName: value}
-func (g Grouper) Reduce(
+func (g *Grouper) Reduce(
 	groupNames []string,
 	indices [][]int,
 	reducer func(sliceOfStructs interface{}) interface{},
@@ -87,10 +92,10 @@ func (g Grouper) Reduce(
 }
 
 // GroupReduce calls .Group() followed by .Reduce() on a slice of structs.
-func (g Grouper) GroupReduce(
+func (g *Grouper) GroupReduce(
 	grouper func(strct interface{}) string,
 	reducer func(sliceOfStructs interface{}) interface{},
 ) map[string]interface{} {
-	groups, indices := g.GroupBy(grouper)
-	return g.Reduce(groups, indices, reducer)
+	indices := g.GroupBy(grouper)
+	return g.Reduce(g.Groups(), indices, reducer)
 }
