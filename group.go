@@ -17,8 +17,8 @@ type Grouper struct {
 	typ            reflect.Type
 }
 
-// NewGrouper constructs a new Grouper from a slice of structs (or pointers to structs).
-func NewGrouper(sliceOfStructs interface{}) (Grouper, error) {
+// New constructs a new Grouper from a slice of structs (or pointers to structs).
+func New(sliceOfStructs interface{}) (Grouper, error) {
 	err := fmt.Sprintf("unsupported input type (%v), must be []*struct or []struct",
 		reflect.TypeOf(sliceOfStructs))
 	if reflect.TypeOf(sliceOfStructs).Kind() != reflect.Slice {

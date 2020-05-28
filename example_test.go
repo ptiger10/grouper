@@ -17,7 +17,7 @@ func Example_groupReduce() {
 		{"bar", 5},
 		{"foo", 2},
 	}
-	g, _ := grouper.NewGrouper(records)
+	g, _ := grouper.New(records)
 	results := g.GroupReduce(
 		func(v interface{}) string { return v.(record).name },
 		func(slice interface{}) interface{} {

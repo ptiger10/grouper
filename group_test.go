@@ -138,7 +138,7 @@ func TestGrouper_Reduce(t *testing.T) {
 	}
 }
 
-func TestNewGrouper(t *testing.T) {
+func TestNew(t *testing.T) {
 	foo := "foo"
 	type args struct {
 		sliceOfStructs interface{}
@@ -181,13 +181,13 @@ func TestNewGrouper(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewGrouper(tt.args.sliceOfStructs)
+			got, err := New(tt.args.sliceOfStructs)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewGrouper() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewGrouper() = %v, want %v", got, tt.want)
+				t.Errorf("New() = %v, want %v", got, tt.want)
 			}
 		})
 	}
