@@ -48,7 +48,7 @@ func New(sliceOfStructs interface{}) (*Grouper, error) {
 }
 
 // GroupBy assigns each struct to a group based on the grouper function. Returns the index positions of each group.
-// Group names can be accessed afterwards by calling g.Group().
+// Group names can be accessed afterwards by calling .Group().
 func (g *Grouper) GroupBy(grouper func(strct interface{}) string) [][]int {
 	v := reflect.ValueOf(g.sliceOfStructs)
 	m := make(map[string][]int, 7)
@@ -72,11 +72,11 @@ func (g *Grouper) GroupBy(grouper func(strct interface{}) string) [][]int {
 }
 
 // Reduce reduces one or more groups (i.e., slice(s) of structs derived from a larger slice of structs) to one value per group.
-// The result is returned in the form: map{groupName: value}
+// The result is returned in the form: map{groupName: value}.
 func (g *Grouper) Reduce(
 	groupNames []string,
 	indices [][]int,
-	reducer func(sliceOfStructs interface{}) interface{},
+	reducer func(sliceOfStructs interface{}, name string) interface{},
 ) map[string]interface{} {
 	ret := make(map[string]interface{}, len(groupNames))
 	for i, group := range groupNames {
@@ -86,7 +86,7 @@ func (g *Grouper) Reduce(
 			src := reflect.ValueOf(g.sliceOfStructs).Index(index)
 			dst.Set(src)
 		}
-		ret[group] = reducer(subset.Interface())
+		ret[group] = reducer(subset.Interface(), group)
 	}
 	return ret
 }
@@ -94,7 +94,7 @@ func (g *Grouper) Reduce(
 // GroupReduce calls .Group() followed by .Reduce() on a slice of structs.
 func (g *Grouper) GroupReduce(
 	grouper func(strct interface{}) string,
-	reducer func(sliceOfStructs interface{}) interface{},
+	reducer func(sliceOfStructs interface{}, name string) interface{},
 ) map[string]interface{} {
 	indices := g.GroupBy(grouper)
 	return g.Reduce(g.Groups(), indices, reducer)

@@ -20,7 +20,7 @@ func Example_groupReduce() {
 	g, _ := grouper.New(records)
 	results := g.GroupReduce(
 		func(v interface{}) string { return v.(record).name },
-		func(slice interface{}) interface{} {
+		func(slice interface{}, _ string) interface{} {
 			var sum int
 			arr := slice.([]record)
 			for i := range arr {

@@ -89,7 +89,7 @@ func TestGrouper_Reduce(t *testing.T) {
 	type args struct {
 		groups  []string
 		indices [][]int
-		lambda  func(sliceOfStructs interface{}) interface{}
+		reducer func(sliceOfStructs interface{}, name string) interface{}
 	}
 	tests := []struct {
 		name   string
@@ -113,9 +113,9 @@ func TestGrouper_Reduce(t *testing.T) {
 					{1, 2},
 					{0, 3},
 				},
-				func(sliceOfStructs interface{}) interface{} {
+				func(slice interface{}, _ string) interface{} {
 					var sum int
-					arr := sliceOfStructs.([]testStructPrivate)
+					arr := slice.([]testStructPrivate)
 					for i := range arr {
 						sum += arr[i].age
 					}
@@ -131,7 +131,7 @@ func TestGrouper_Reduce(t *testing.T) {
 				sliceOfStructs: tt.fields.sliceOfStructs,
 				typ:            tt.fields.typ,
 			}
-			if got := g.Reduce(tt.args.groups, tt.args.indices, tt.args.lambda); !reflect.DeepEqual(got, tt.want) {
+			if got := g.Reduce(tt.args.groups, tt.args.indices, tt.args.reducer); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Grouper.Reduce() = %v, want %v", got, tt.want)
 			}
 		})
