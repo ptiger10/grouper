@@ -71,31 +71,61 @@ func (g *Grouper) GroupBy(grouper func(strct interface{}) string) [][]int {
 	return indices
 }
 
-// Reduce reduces one or more groups (i.e., slice(s) of structs derived from a larger slice of structs) to one value per group.
-// The result is returned in the form: map{groupName: value}.
+// Reduce uses a reducer function to reduce one or more groups
+// (i.e., slice(s) of structs derived from a larger slice of structs) to one interface value per group.
+// Returns a map in the form {groupName: reducedValue}.
 func (g *Grouper) Reduce(
-	groupNames []string,
 	indices [][]int,
-	reducer func(sliceOfStructs interface{}, name string) interface{},
+	reducer func(groupSlice interface{}) interface{},
 ) map[string]interface{} {
-	ret := make(map[string]interface{}, len(groupNames))
-	for i, group := range groupNames {
+	ret := make(map[string]interface{}, len(g.groups))
+	for i, group := range g.groups {
 		subset := reflect.MakeSlice(reflect.SliceOf(g.typ), len(indices[i]), len(indices[i]))
 		for j, index := range indices[i] {
 			dst := subset.Index(j)
 			src := reflect.ValueOf(g.sliceOfStructs).Index(index)
 			dst.Set(src)
 		}
-		ret[group] = reducer(subset.Interface(), group)
+		ret[group] = reducer(subset.Interface())
 	}
 	return ret
+}
+
+// ReduceWithName uses a reducer function to reduce one or more groups
+// (i.e., slice(s) of structs derived from a larger slice of structs) to one value per group.
+// The reducer function has access to the name of each group.
+// The caller is expected to handle the results outside of the reducer function, and so this is a void method.
+func (g *Grouper) ReduceWithName(
+	indices [][]int,
+	reducer func(groupSlice interface{}, name string),
+) {
+	for i, group := range g.groups {
+		subset := reflect.MakeSlice(reflect.SliceOf(g.typ), len(indices[i]), len(indices[i]))
+		for j, index := range indices[i] {
+			dst := subset.Index(j)
+			src := reflect.ValueOf(g.sliceOfStructs).Index(index)
+			dst.Set(src)
+		}
+		reducer(subset.Interface(), group)
+	}
+	return
 }
 
 // GroupReduce calls .Group() followed by .Reduce() on a slice of structs.
 func (g *Grouper) GroupReduce(
 	grouper func(strct interface{}) string,
-	reducer func(sliceOfStructs interface{}, name string) interface{},
+	reducer func(groupSlice interface{}) interface{},
 ) map[string]interface{} {
 	indices := g.GroupBy(grouper)
-	return g.Reduce(g.Groups(), indices, reducer)
+	return g.Reduce(indices, reducer)
+}
+
+// GroupReduceWithName calls .Group() followed by .ReduceWithName() on a slice of structs.
+func (g *Grouper) GroupReduceWithName(
+	grouper func(strct interface{}) string,
+	reducer func(groupSlice interface{}, name string),
+) {
+	indices := g.GroupBy(grouper)
+	g.ReduceWithName(indices, reducer)
+	return
 }
